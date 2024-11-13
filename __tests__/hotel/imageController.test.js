@@ -1,119 +1,155 @@
-const request = require("supertest");
-const express = require("express");
-const multer = require("multer");  // Import multer as usual
-const { uploadImages } = require("../../controllers/imageController");  // Your controller
+const request = require('supertest');
+const path = require('path');
+const fs = require('fs');
+const express = require('express');
+const { uploadImages } = require('../../controllers/imageController');
 
-// Mock multer and related modules
-jest.mock("multer", () => {
-  return {
-    diskStorage: jest.fn().mockImplementation((config) => {
-      return {
-        _config: config,  // Optionally store config
-      };
-    }),
-    array: jest.fn().mockImplementation((field, maxCount) => (req, res, cb) => {
-      cb(null, [{ filename: "test.jpg" }]);  // Simulate file upload success
-    }),
-  };
-});
-
-jest.mock("fs", () => ({
-  existsSync: jest.fn().mockReturnValue(false),  // Simulate no existing directory
-  mkdirSync: jest.fn(),  // Prevent real directory creation
-}));
-
-jest.mock("path", () => ({
-  join: jest.fn().mockReturnValue("../../uploads/h001/filename.jpg"),  // Mock path.join
-}));
-
-jest.mock("../../models/hotelModel", () => ({
+// Mock the hotel model functions
+jest.mock('../../models/hotelModel', () => ({
   readHotelsFile: jest.fn(),
-  writeHotelsFile: jest.fn(),
+  writeHotelsFile: jest.fn()
 }));
 
-// Express setup
+// Mock fs functions
+jest.mock('fs', () => ({
+  ...jest.requireActual('fs'),
+  existsSync: jest.fn(),
+  mkdirSync: jest.fn()
+}));
+
 const app = express();
-app.use(express.json());
-app.post("/upload", uploadImages);  // Image upload endpoint
+app.post('/upload', uploadImages);
 
-describe("Image Controller - uploadImages", () => {
+describe('Upload Images Controller', () => {
+  const mockHotel = {
+    hotel_id: "h001",
+    images: []
+  };
+  
   beforeEach(() => {
+    // Clear all mocks before each test
     jest.clearAllMocks();
+    
+    // Set up default mock implementations
+    fs.existsSync.mockReturnValue(false);
+    fs.mkdirSync.mockImplementation(() => undefined);
+    require('../../models/hotelModel').readHotelsFile.mockReturnValue([mockHotel]);
   });
 
-  it("should return a 500 if image upload fails", async () => {
-    // Simulate an error in multer's upload by calling the callback with an error
-    multer.mockImplementation(() => ({
-      array: jest.fn((field, maxCount) => (req, res, cb) => {
-        cb(new Error("Image upload failed"));
+  afterEach(() => {
+    // Clean up any test files that were created
+    const testUploadDir = path.join(__dirname, '../uploads/123');
+    if (fs.existsSync(testUploadDir)) {
+      fs.rmdirSync(testUploadDir, { recursive: true });
+    }
+  });
+
+  test('should successfully upload images', async () => {
+    const response = await request(app)
+      .post('/upload')
+      .field('hotel_id', "h001")
+      .attach('images', Buffer.from('fake-image'), {
+        filename: 'test-image.jpg',
+        contentType: 'image/jpeg'
       })
-    }));
-
-    const response = await request(app)
-      .post("/upload")
-      .field("hotel_id", "h001")
-      .attach("images", "test.jpg");  // Simulate file upload
-
-    expect(response.status).toBe(500);
-    expect(response.body.error).toBe("Image upload failed");
-  });
-
-  it("should return a 200 if images are uploaded successfully", async () => {
-    const mockHotel = {
-      hotel_id: "h001",
-      images: [],
-    };
-
-    // Mock readHotelsFile to return a hotel
-    require("../models/hotelModel").readHotelsFile.mockReturnValue([mockHotel]);
-
-    // Mock writeHotelsFile to not do anything (since it's writing to a file)
-    require("../models/hotelModel").writeHotelsFile.mockImplementation(() => {});
-
-    // Simulate file upload
-    const response = await request(app)
-      .post("/upload")
-      .field("hotel_id", "h001")
-      .attach("images", "test.jpg");
+      .attach('images', Buffer.from('fake-image-2'), {
+        filename: 'test-image-2.jpg',
+        contentType: 'image/jpeg'
+      });
 
     expect(response.status).toBe(200);
-    expect(response.body.message).toBe("Images uploaded successfully");
-    expect(response.body.imageUrls).toBeDefined();
+    expect(response.body.message).toBe('Images uploaded successfully');
+    expect(response.body.imageUrls).toHaveLength(2);
+    
+    // Verify hotel record was updated
+    const writeHotelsFile = require('../../models/hotelModel').writeHotelsFile;
+    expect(writeHotelsFile).toHaveBeenCalledTimes(1);
+    expect(writeHotelsFile.mock.calls[0][0][0].images).toHaveLength(2);
   });
 
-  it("should return a 404 if hotel not found", async () => {
-    // Mock readHotelsFile to return no hotels
-    require("../models/hotelModel").readHotelsFile.mockReturnValue([]);
+  test('should fail if hotel_id is not found', async () => {
+    require('../../models/hotelModel').readHotelsFile.mockReturnValue([]);
 
     const response = await request(app)
-      .post("/upload")
-      .field("hotel_id", "h001")
-      .attach("images", "test.jpg");
+      .post('/upload')
+      .field('hotel_id', 'h001')
+      .attach('images', Buffer.from('fake-image'), {
+        filename: 'test-image.jpg',
+        contentType: 'image/jpeg'
+      });
 
     expect(response.status).toBe(404);
-    expect(response.body.message).toBe("Hotel not found");
+    expect(response.body.message).toBe('Hotel not found');
   });
 
-  it("should return a 500 if failed to update hotel record", async () => {
-    const mockHotel = {
-      hotel_id: "h001",
-      images: [],
-    };
+  test('should fail if file size exceeds limit', async () => {
+    // Create a buffer larger than 5MB
+    const largeBuffer = Buffer.alloc(6 * 1024 * 1024);
 
-    // Mock readHotelsFile to return a hotel
-    require("../../models/hotelModel").readHotelsFile.mockReturnValue([mockHotel]);
+    const response = await request(app)
+      .post('/upload')
+      .field('hotel_id', "h001")
+      .attach('images', largeBuffer, {
+        filename: 'large-image.jpg',
+        contentType: 'image/jpeg'
+      });
 
-    // Simulate an error during writeHotelsFile
-    require("../../models/hotelModel").writeHotelsFile.mockImplementation(() => {
-      throw new Error("Failed to update hotel record");
+    expect(response.status).toBe(500);
+    expect(response.body.error).toBe('Image upload failed');
+  });
+
+  test('should fail if more than 10 images are uploaded', async () => {
+    const attachments = Array(11).fill(null).map((_, index) => ({
+      buffer: Buffer.from('fake-image'),
+      filename: `test-image-${index}.jpg`,
+      contentType: 'image/jpeg'
+    }));
+
+    const req = request(app).post('/upload').field('hotel_id', "h001");
+    
+    attachments.forEach(attachment => {
+      req.attach('images', attachment.buffer, {
+        filename: attachment.filename,
+        contentType: attachment.contentType
+      });
+    });
+
+    const response = await req;
+
+    expect(response.status).toBe(500);
+    expect(response.body.error).toBe('Image upload failed');
+  });
+
+  test('should create upload directory if it does not exist', async () => {
+    await request(app)
+      .post('/upload')
+      .field('hotel_id', "h001")
+      .attach('images', Buffer.from('fake-image'), {
+        filename: 'test-image.jpg',
+        contentType: 'image/jpeg'
+      });
+
+    expect(fs.existsSync).toHaveBeenCalledWith(expect.stringContaining('/uploads/h001'));
+    expect(fs.mkdirSync).toHaveBeenCalledWith(
+      expect.stringContaining('/uploads/h001'),
+      { recursive: true }
+    );
+  });
+
+  test('should handle model write errors', async () => {
+    require('../../models/hotelModel').writeHotelsFile.mockImplementation(() => {
+      throw new Error('Write failed');
     });
 
     const response = await request(app)
-      .post("/upload")
-      .field("hotel_id", "h001")
-      .attach("images", "test.jpg");
+      .post('/upload')
+      .field('hotel_id', "h001")
+      .attach('images', Buffer.from('fake-image'), {
+        filename: 'test-image.jpg',
+        contentType: 'image/jpeg'
+      });
 
     expect(response.status).toBe(500);
-    expect(response.body.error).toBe("Failed to update hotel record");
+    expect(response.body.error).toBe('Failed to update hotel record');
   });
 });
