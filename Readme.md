@@ -51,14 +51,11 @@ The folder structure of this app is explained below:
 | **dist**                 | Contains the distributable (or output) from your TypeScript build.  |
 | **node_modules**         | Contains all  npm dependencies                                                            |
 | **src**                  | Contains  source code that will be compiled to the dist dir                               |
-| **configuration**        | Application configuration including environment-specific configs 
 | **src/controllers**      | Controllers define functions to serve various express routes. 
 | **src/lib**              | Common libraries to be used across your app.  
-| **src/middlewares**      | Express middlewares which process the incoming requests before handling them down to the routes
 | **src/routes**           | Contain all express routes, separated by module/area of application                       
 | **src/models**           | Models define schemas that will be used in storing and retrieving data from Application 
-| **src/monitoring**      | Prometheus metrics |
-| **src**/server.ts         | Entry point to express app                                                               |
+| server.ts         | Entry point to express app                                                               |
 | package.json             | Contains npm dependencies as well as [build scripts](#what-if-a-library-isnt-on-definitelytyped)   | tsconfig.json            | Config settings for compiling source code only written in TypeScript    
 | tslint.json              | Config settings for TSLint code style checking                                                |
 
@@ -104,9 +101,7 @@ Npm scripts basically allow us to call (and chain) terminal commands via npm.
 The tests are  written in Mocha and the assertions done using Chai
 
 ```
-"mocha": "3.4.2",
-"chai": "4.1.2",
-"chai-http": "3.0.0",
+"jest": "29.7.0",
 
 ```
 
