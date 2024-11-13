@@ -1,12 +1,4 @@
-# Nodejs FES Template
-
-# Environment vars
-This project uses the following environment variables:
-
-| Name                          | Description                         | Default Value                                  |
-| ----------------------------- | ------------------------------------| -----------------------------------------------|
-|CORS           | Cors accepted values            | "*"      |
-
+# Nodejs and Express Assignment
 
 # Pre-requisites
 - Install [Node.js](https://nodejs.org/en/) version 22.11.0
