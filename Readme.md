@@ -106,7 +106,7 @@ The tests are  written in Mocha and the assertions done using Chai
 
 ```
 ````
-| `npm tesr`                   | For run All test        |
+| `npm test`                   | For run All test        |
 
 ````
 Test files are created under __test__ folder.
