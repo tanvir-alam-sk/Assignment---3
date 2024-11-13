@@ -7,9 +7,9 @@ const {
   updateHotel,
 } = require("../controllers/hotelController");
 
-router.get("/", getAllHotels);
-router.post("/", createHotel);
-router.get("/:id", getHotelById);
-router.put("/:id", updateHotel);
+router.get("/hotel", getAllHotels);
+router.post("/hotel", createHotel);
+router.get("/hotel/:id", getHotelById);
+router.put("/hotel/:id", updateHotel);
 
 module.exports = router;
