@@ -28,7 +28,7 @@ npm run dev
 
   update-A-Hotel-By-Id Endpoint : http://localhost:8000/hotel_id 
 
-  post-a-Image  Endpoint : http://localhost:8000 
+  post-a-Image  Endpoint : http://localhost:8000/images 
 
 
 # TypeScript + Node 
