@@ -15,5 +15,6 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/hotel", hotelRoutes);
 app.use("/hotel-details", hotelDetailsRoutes);
 app.use("/images", imageRoutes);
+app.use("/*", imageRoutes);
 
 module.exports = app;
