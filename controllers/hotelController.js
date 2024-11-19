@@ -138,10 +138,9 @@ async function updateHotel(req, res) {
 }
 
 async function getHotelByNameAndId(req, res) {
-  console.log(req.params);
   try {
     const hotels = await readHotelsFile();
-    const hotel = hotels.find((hotel) => hotel.hotel_id == req.params.id);
+    const hotel = hotels.find((hotel) => hotel.hotel_id == req.params.id  &&  hotel.slug==req.params.name);
     if (hotel) {
       return res
         .status(200)
