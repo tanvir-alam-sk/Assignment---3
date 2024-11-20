@@ -7,7 +7,7 @@
 # Getting started
 - Clone the repository
 ```
-git clone  https://github.com/tanvir-alam-sk/Assignment---3 hotel-management
+git clone  https://github.com/tanvir-alam-sk/Assignment---3 hotel-management-server
 ```
 - Install dependencies
 ```
